@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arztrechnung Splitter</title>
+<meta name="description" content="Gescannte Arztrechnungen im Browser aufteilen und einzeln als PDF exportieren – ohne Upload, alles lokal.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a84ff">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>📎 Arztrechnung Splitter</h1>
+  <p class="subtitle">Läuft komplett lokal in deinem Browser. Es werden keine Daten hochgeladen.</p>
+</header>
+
+<main>
+
+  <section id="upload-section" class="card">
+    <h2>1. PDF laden</h2>
+    <p class="hint">Wähle die gescannte PDF mit mehreren Arztrechnungen hintereinander aus.</p>
+    <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
+    <button id="uploadBtn" type="button" class="btn btn-primary btn-big">📄 Gescannte PDF auswählen</button>
+    <p id="uploadStatus" class="status-text" aria-live="polite"></p>
+  </section>
+
+  <section id="pages-section" class="card" hidden>
+    <h2>2. Seiten aufteilen</h2>
+    <p class="hint">Standardmäßig ist jede Seite eine eigene Rechnung. Tippe auf eine Seite, um sie mit der vorherigen zusammenzufassen bzw. wieder zu trennen.</p>
+    <div id="pagesList" class="pages-list"></div>
+  </section>
+
+  <section id="groups-section" class="card" hidden>
+    <h2>3. Angaben je Rechnung</h2>
+    <div id="groupsList" class="groups-list"></div>
+    <button id="generateBtn" type="button" class="btn btn-primary btn-big">✅ PDFs erzeugen</button>
+  </section>
+
+  <section id="results-section" class="card" hidden>
+    <h2>4. Fertige PDFs</h2>
+    <div class="results-actions">
+      <button id="shareAllBtn" type="button" class="btn btn-secondary btn-big" hidden>📤 Alle teilen</button>
+    </div>
+    <div id="resultsList" class="results-list"></div>
+    <button id="resetBtn" type="button" class="btn btn-ghost btn-big">🔄 Neue PDF laden</button>
+  </section>
+
+  <section id="history-section" class="card">
+    <h2>Verlauf</h2>
+    <p class="hint">Alle bisher erzeugten Rechnungen (nur Datum, Arzt, Betrag) – lokal auf diesem Gerät gespeichert.</p>
+    <div id="historyList" class="history-list"></div>
+    <div class="history-actions">
+      <button id="exportCsvBtn" type="button" class="btn btn-secondary btn-big">⬇️ Verlauf als CSV exportieren</button>
+      <button id="clearHistoryBtn" type="button" class="btn btn-ghost">Verlauf löschen</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>Deine Rechnungsdaten verlassen dieses Gerät nie. Nur beim allerersten Aufruf wird Internet benötigt, um die PDF-Hilfsbibliotheken zu laden.</p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

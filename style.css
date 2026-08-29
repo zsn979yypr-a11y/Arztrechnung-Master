@@ -146,6 +146,57 @@ main {
   min-height: 1.2em;
 }
 
+/* Kamera-Erfassung */
+.capture-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.capture-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.capture-thumb {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+}
+
+.capture-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.capture-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.capture-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* Pages list */
 .pages-list {
   display: flex;

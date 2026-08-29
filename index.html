@@ -20,11 +20,23 @@
 <main>
 
   <section id="upload-section" class="card">
-    <h2>1. PDF laden</h2>
-    <p class="hint">Wähle die gescannte PDF mit mehreren Arztrechnungen hintereinander aus.</p>
+    <h2>1. Rechnungen erfassen</h2>
+    <p class="hint">Fotografiere die Arztrechnungen nacheinander mit der Kamera, oder lade eine bereits gescannte PDF hoch.</p>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
     <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
-    <button id="uploadBtn" type="button" class="btn btn-primary btn-big">📄 Gescannte PDF auswählen</button>
+    <button id="scanBtn" type="button" class="btn btn-primary btn-big">📷 Rechnungen scannen</button>
+    <button id="uploadBtn" type="button" class="btn btn-secondary btn-big">📄 Vorhandene PDF hochladen</button>
     <p id="uploadStatus" class="status-text" aria-live="polite"></p>
+  </section>
+
+  <section id="capture-section" class="card" hidden>
+    <h2>Gescannte Seiten</h2>
+    <p class="hint">Fotografiere jede Rechnungsseite einzeln. Wenn alle Seiten erfasst sind, tippe auf "Scan abschließen".</p>
+    <div id="captureList" class="capture-list"></div>
+    <div class="capture-actions">
+      <button id="addPageBtn" type="button" class="btn btn-secondary btn-big">➕ Weitere Seite fotografieren</button>
+      <button id="finishCaptureBtn" type="button" class="btn btn-primary btn-big" disabled>✅ Scan abschließen</button>
+    </div>
   </section>
 
   <section id="pages-section" class="card" hidden>

@@ -13,6 +13,12 @@ const els = {
   uploadBtn: document.getElementById('uploadBtn'),
   uploadStatus: document.getElementById('uploadStatus'),
   uploadSection: document.getElementById('upload-section'),
+  cameraInput: document.getElementById('cameraInput'),
+  scanBtn: document.getElementById('scanBtn'),
+  captureSection: document.getElementById('capture-section'),
+  captureList: document.getElementById('captureList'),
+  addPageBtn: document.getElementById('addPageBtn'),
+  finishCaptureBtn: document.getElementById('finishCaptureBtn'),
   pagesSection: document.getElementById('pages-section'),
   pagesList: document.getElementById('pagesList'),
   groupsSection: document.getElementById('groups-section'),
@@ -35,6 +41,7 @@ const state = {
   groupFields: new Map(),
   currentGroups: [],
   results: [],
+  capturedPages: [],
 };
 
 init();
@@ -42,6 +49,10 @@ init();
 function init() {
   els.uploadBtn.addEventListener('click', () => els.fileInput.click());
   els.fileInput.addEventListener('change', onFileChosen);
+  els.scanBtn.addEventListener('click', startCaptureSession);
+  els.addPageBtn.addEventListener('click', () => els.cameraInput.click());
+  els.cameraInput.addEventListener('change', onPhotoTaken);
+  els.finishCaptureBtn.addEventListener('click', finishCapture);
   els.generateBtn.addEventListener('click', generatePdfs);
   els.resetBtn.addEventListener('click', () => {
     resetSession();
@@ -63,6 +74,143 @@ async function onFileChosen(e) {
     return;
   }
   await loadPdf(file);
+}
+
+/* ---------- Kamera-Scan: Fotos aufnehmen und zu PDF zusammenfügen ---------- */
+
+function startCaptureSession() {
+  clearCapturedPages();
+  els.captureSection.hidden = false;
+  els.captureSection.scrollIntoView({ behavior: 'smooth' });
+  setStatus('');
+  els.cameraInput.click();
+}
+
+async function onPhotoTaken(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  setStatus('Verarbeite Foto …');
+  try {
+    const normalized = await normalizeImageFile(file);
+    const url = URL.createObjectURL(normalized.blob);
+    state.capturedPages.push({ blob: normalized.blob, width: normalized.width, height: normalized.height, url });
+    renderCaptureList();
+    setStatus(`${state.capturedPages.length} Seite(n) fotografiert.`);
+  } catch (err) {
+    console.error(err);
+    setStatus('Foto konnte nicht verarbeitet werden: ' + (err && err.message ? err.message : err));
+  }
+}
+
+function normalizeImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 2200;
+      let { width, height } = img;
+      const scale = Math.min(1, maxDim / Math.max(width, height));
+      width = Math.max(1, Math.round(width * scale));
+      height = Math.max(1, Math.round(height * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(objectUrl);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Bild konnte nicht verarbeitet werden'));
+            return;
+          }
+          resolve({ blob, width, height });
+        },
+        'image/jpeg',
+        0.85
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Bild konnte nicht geladen werden'));
+    };
+    img.src = objectUrl;
+  });
+}
+
+function renderCaptureList() {
+  els.captureList.innerHTML = '';
+  state.capturedPages.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'capture-item';
+
+    const img = document.createElement('img');
+    img.className = 'capture-thumb';
+    img.src = p.url;
+    img.alt = `Seite ${i + 1}`;
+    card.appendChild(img);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'capture-remove';
+    removeBtn.textContent = '✕';
+    removeBtn.setAttribute('aria-label', `Seite ${i + 1} entfernen`);
+    removeBtn.addEventListener('click', () => {
+      URL.revokeObjectURL(p.url);
+      state.capturedPages.splice(i, 1);
+      renderCaptureList();
+    });
+    card.appendChild(removeBtn);
+
+    const label = document.createElement('span');
+    label.className = 'capture-label';
+    label.textContent = `Seite ${i + 1}`;
+    card.appendChild(label);
+
+    els.captureList.appendChild(card);
+  });
+  els.finishCaptureBtn.disabled = state.capturedPages.length === 0;
+}
+
+function clearCapturedPages() {
+  state.capturedPages.forEach((p) => {
+    if (p.url) URL.revokeObjectURL(p.url);
+  });
+  state.capturedPages = [];
+  els.captureList.innerHTML = '';
+  els.finishCaptureBtn.disabled = true;
+}
+
+async function finishCapture() {
+  if (state.capturedPages.length === 0) return;
+  setStatus('Erstelle PDF aus den Fotos …');
+  try {
+    const bytes = await buildPdfFromCapturedPages(state.capturedPages);
+    const file = new File([bytes], 'scan.pdf', { type: 'application/pdf' });
+    els.captureSection.hidden = true;
+    clearCapturedPages();
+    await loadPdf(file);
+  } catch (err) {
+    console.error(err);
+    setStatus('Fehler beim Erstellen der PDF: ' + (err && err.message ? err.message : err));
+  }
+}
+
+async function buildPdfFromCapturedPages(pages) {
+  const PT_PER_PX = 0.75; // 96dpi Bildschirmpixel -> 72pt PDF-Punkte
+  const pdfDoc = await PDFLib.PDFDocument.create();
+  for (const p of pages) {
+    const bytes = await p.blob.arrayBuffer();
+    const jpgImage = await pdfDoc.embedJpg(bytes);
+    const pageWidth = p.width * PT_PER_PX;
+    const pageHeight = p.height * PT_PER_PX;
+    const page = pdfDoc.addPage([pageWidth, pageHeight]);
+    page.drawImage(jpgImage, { x: 0, y: 0, width: pageWidth, height: pageHeight });
+  }
+  return pdfDoc.save();
 }
 
 async function loadPdf(file) {
@@ -568,6 +716,9 @@ function resetSession() {
   state.groupFields = new Map();
   state.currentGroups = [];
   state.results = [];
+
+  clearCapturedPages();
+  els.captureSection.hidden = true;
 
   els.pagesList.innerHTML = '';
   els.groupsList.innerHTML = '';

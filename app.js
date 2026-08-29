@@ -27,6 +27,7 @@ const els = {
   resultsSection: document.getElementById('results-section'),
   resultsList: document.getElementById('resultsList'),
   shareAllBtn: document.getElementById('shareAllBtn'),
+  numbersAllBtn: document.getElementById('numbersAllBtn'),
   resetBtn: document.getElementById('resetBtn'),
   historyList: document.getElementById('historyList'),
   exportCsvBtn: document.getElementById('exportCsvBtn'),
@@ -59,6 +60,7 @@ function init() {
     els.uploadSection.scrollIntoView({ behavior: 'smooth' });
   });
   els.shareAllBtn.addEventListener('click', onShareAll);
+  els.numbersAllBtn.addEventListener('click', () => openNumbersShortcut(state.results.map((r) => r.entry)));
   els.exportCsvBtn.addEventListener('click', onExportCsv);
   els.clearHistoryBtn.addEventListener('click', onClearHistory);
   renderHistory();
@@ -436,14 +438,16 @@ async function generatePdfs() {
       const filename = buildFilename(fields);
       const blob = new Blob([bytes], { type: 'application/pdf' });
 
-      results.push({ filename, blob, pageIndices: g.pageIndices });
-      historyEntries.push({
+      const entry = {
         date: fields.date || todayISO(),
         doctor: (fields.doctor || 'unbekannt').trim() || 'unbekannt',
         amount: normalizeAmount(fields.amount) ?? 0,
         filename,
         createdAt: new Date().toISOString(),
-      });
+      };
+
+      results.push({ filename, blob, pageIndices: g.pageIndices, entry });
+      historyEntries.push(entry);
     }
 
     state.results = results;
@@ -558,12 +562,41 @@ function renderResults() {
     dlBtn.addEventListener('click', () => downloadBlob(r.blob, r.filename));
     actions.appendChild(dlBtn);
 
+    const numbersBtn = document.createElement('button');
+    numbersBtn.type = 'button';
+    numbersBtn.className = 'btn btn-secondary';
+    numbersBtn.textContent = '📊 In Numbers eintragen';
+    numbersBtn.addEventListener('click', () => openNumbersShortcut([r.entry]));
+    actions.appendChild(numbersBtn);
+
     card.appendChild(actions);
     els.resultsList.appendChild(card);
   });
 
   const allFiles = state.results.map((r) => new File([r.blob], r.filename, { type: 'application/pdf' }));
   els.shareAllBtn.hidden = !(allFiles.length > 1 && canShareFiles(allFiles));
+  els.numbersAllBtn.hidden = state.results.length === 0;
+}
+
+/* ---------- Kurzbefehl "Rechnung in Numbers" auslösen ---------- */
+
+const NUMBERS_SHORTCUT_NAME = 'Rechnung in Numbers';
+
+function openNumbersShortcut(entries) {
+  if (!entries || entries.length === 0) return;
+  const payload = entries
+    .map((e) => {
+      const amount =
+        typeof e.amount === 'number' ? e.amount.toFixed(2).replace('.', ',') : String(e.amount).replace('.', ',');
+      return [formatDateDisplay(e.date), e.doctor, amount].join('|');
+    })
+    .join('\n');
+  const url =
+    'shortcuts://run-shortcut?name=' +
+    encodeURIComponent(NUMBERS_SHORTCUT_NAME) +
+    '&input=text&text=' +
+    encodeURIComponent(payload);
+  window.location.href = url;
 }
 
 function canShareFiles(files) {
@@ -727,6 +760,7 @@ function resetSession() {
   els.groupsSection.hidden = true;
   els.resultsSection.hidden = true;
   els.shareAllBtn.hidden = true;
+  els.numbersAllBtn.hidden = true;
   els.fileInput.value = '';
   setStatus('');
 }
